@@ -137,3 +137,18 @@ code {
   color: #FFA500; 
   font-weight: bold; 
 }
+
+.video-size {
+  width: 80%;  /* Adjust to your preferred size */
+  max-width: 500px; /* Ensures it doesn't get too large */
+  height: auto; /* Maintains aspect ratio */
+}
+
+.video-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: auto;
+  margin-top: 20px; /* Adjust spacing from top */
+}
+

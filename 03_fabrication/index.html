@@ -23,12 +23,153 @@
 <div class="textcontainer">
 <p class="margin">   </p>
 
-<h3>Week 3: Hand Tools and Fabrication</h3>
+<h3 class="title">Week 3: Hand Tools and Fabrication</h3>
 
-<h4>Kinetic Sculpture</h4>
+<br>
+
+<h4 class="title">Kinetic Sculpture</h4>
+<p>
+  For my Kinetic sculpture I got inspiration from this youtube video (See below). 
+  This design seems to be very popular. Most of the sculptures I saw that had two
+  wheels revolving in opposite directions used this design.
+</p>
+
+<div class="video-container left-align">
+  <iframe 
+      src="https://www.youtube.com/embed/iDwH6RhKByY" 
+      frameborder="0" 
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+      allowfullscreen>
+  </iframe>
+</div>
+<br>
+<p>
+  I did not want to cut the design by hand, it would have taken a long time.
+  So I used the video tutorial below, to replicate the design in Fusion. 
+</p>
+
+<div class="video-container left-align">
+  <iframe 
+      src="https://www.youtube.com/embed/YBxEiNGmfz0" 
+      frameborder="0" 
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+      allowfullscreen>
+  </iframe>
+</div>
+
+This is how it looks like in my Fusion:
+
+<div class="d-flex justify-content-center">
+  <img src="fusion model.png" alt="Centered Image of a fusion model" style="width: 600px; height: auto;">
+</div>
+<br>
+<p>
+  I printed this design and cut two copies it on the laser cutter. 
+  Then I attached each to pulley wheels I found in the lab using hot glue.
+  I then attached an axle through both wheels and cut tiny wood pieces to 
+  prevent the wheel from falling off the axle or colliding with each other.
+
+  <br>
+
+  The next bit was fixing this on a stand and I had to fix the DC motor ona  simila 
+  stand. Then I connected smaller pulley wheels on both sides of the motor
+  and cut some string to use as a belt. 
+  
+  <br> 
+  
+  This is where most of the problems came in. The string was either too loose
+  or did not rotate at all. This was made worse by the fact that both the motor 
+  and the wheels were not stable enough so I could not exert a lot of tension on them.
+</p>
+
+<p>
+  But the two images below show the final outcome!
+</p>
+
+<div style="display: flex; justify-content: center; gap: 20px; max-width: 100%;">
+  <div style="text-align: center; max-width: 250px;">
+      <img src="Complete circuit.jpeg" alt="Image of breadboard with a circuit on it" style="width: 100%; border-radius: 8px;">
+      <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;"> Circuit part of the system. </p>
+  </div>
+  <div style="text-align: center; max-width: 250px;">
+    <img src="Complete Wheels.jpeg" alt="Image of the kinetic wheels" style="width: 100%; border-radius: 8px;">
+    <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Wheels part of the system.</p>
+</div> 
+</div>
+
+<br>
+
+The system is complemented by this simple circuit.
+
+<div class="d-flex justify-content-center">
+  <img src="LTSpice Model.png" alt="Centered Image of a fusion model" style="width: 600px; height: auto;">
+</div>
+
+<br>
+
+<p>
+  The circuit has a switch that can either turn the current on or off.
+  The LED let's you know whem the current is on, as it lights up green. There is also
+  a potentiometer (a variable resistor) thet limits current through the LED and the motor
+  but also serves as a knob to control the speed of the motor. It does this by increasing or 
+  reducing voltage drop across it when the knob is turned. The capacitor was added here to smooth 
+  current flow as it stores some charge when circuit is turned on and keeps releasing
+  this voltage when the switch is turned off. That is why the LED keep 
+  glowing for a few seconds after the switch is turned off. 
+  
+  <br>
+  <br>
+
+  It seems the motor needs a lot of voltage though because I could not 
+  turn the knob much before it stopped turning.
+</p>
+
+<br>
+
+<p>
+  The first video below shows the circuit in action without the motor and the 
+  second video shows it with a motor connected.
+</p>
+
+<div class="container">
+  <!-- First video -->
+  <div class="d-flex justify-content-center mb-4">
+      <video width="80%" controls class="video-size">
+          <source src="Why Capacitor.MOV" type="video/mp4">
+          Your browser does not support the video tag.
+      </video>
+  </div>
+
+  <!-- Second video -->
+  <div class="d-flex justify-content-center">
+      <video width="80%" controls class="video-size">
+          <source src="Circuit with motor.MOV" type="video/mp4">
+          Your browser does not support the video tag.
+      </video>
+  </div>
+</div>
+
+<br>
+<p>
+  The following videos shows the whole system in action. The pulley system needs
+  some tweaking though. And i should probabl have cut out the designs in plywood instead
+  of cardboard.
+  
+  <br>
+  
+  (Victor helped me take the video, and also debug some stuff in Fusion, Thanks!)
+</p>
 
 
-
+<div class="container">
+  <!-- Second video -->
+  <div class="d-flex justify-content-center">
+      <video width="80%" controls class="video-size">
+          <source src="It works_.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+      </video>
+  </div>
+</div>
 
 </div>
 </xmp>
