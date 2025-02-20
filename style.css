@@ -143,12 +143,3 @@ code {
   max-width: 500px; /* Ensures it doesn't get too large */
   height: auto; /* Maintains aspect ratio */
 }
-
-.video-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: auto;
-  margin-top: 20px; /* Adjust spacing from top */
-}
-
