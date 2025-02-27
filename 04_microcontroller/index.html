@@ -100,14 +100,19 @@
   I then implemented the code that would make the LEDs light up in response to music. The idea was that 
   low frequencies would be represented in the lower LEDs with color red, mid frequencies in the 
   middle LEDs with color blue and high frequencies in the upper LEDs with color green. The brightness would also be affected by the 
-  overall volume of the playing device. See code below: <br> (You will need to manually install the A2DP library
-  and the ArduinoFFT library for this to work. You will also need to downgrade the esp32 board by expressif to version 2.0.9 because the
-  latest version is incomaptible with the A2DP library. You can do this by going to the board manager and selecting the version (2.0.9) On the version drop down
-   )
+  overall volume of the playing device. See code below. <br> 
+</p>
+
+<p >
+You will need to manually install the <a href="https://github.com/pschatzmann/ESP32-A2DP">A2DP</a> library
+and the  <a href="https://github.com/kosme/arduinoFFT">ArduinoFFT</a> library manually from github for this to work. To do that click 
+on the hyperlinks, go to code and download zip, then back on arduino, go to manage tools, manage libraries, add librariees from zip
+and use the downloaded zips. <br> You will also need to downgrade the esp32 board by expressif to version 2.0.9 because the
+latest version is incomaptible with the A2DP library. You can do this by going to the board manager and selecting the version (2.0.9) On the version drop down.
 </p>
 
 <pre><code>
-  #include <Arduino.h>
+    #include <Arduino.h>
     #include <Adafruit_NeoPixel.h>
     #include <BluetoothA2DPSink.h>
     #include <arduinoFFT.h>
@@ -303,8 +308,7 @@
     void loop() {
         // Nothing needed here - audio is processed in process_audio()
     }    
-    </code></pre>
-<br>
+  </code></pre>
 
 <p>
       These below videos show how the new implementation looks like. The first video is of a song with more bass and the second
