@@ -146,26 +146,84 @@
 <P>
   In this part I will be calibrating a 324 hall effect sensor. I will be using this for my
   final project and would like to know the optimal distance the magnet should be from 
-  the sensor. <br> I have a magnet fixed to  a gear which rotates in a dc motor.
-  I will put the gear,magnet, dc motor set up at different
-  distances from the sensor and read the values in the serial monitor.
-  After calibration, I will connect the output to turn on 
-  an LED with different brightness at different recorded analog values. 
-</P>
-<p>
-  For the circuit, I have connected the red LED  to pin
-  5 and it's anode to GND via a 1k resistor. The VC pin of the
-  hall effect sensor is connected to the 3.3V pin, the middle pin
-  to common GND and the V0 pin to pin 34. See below image for how it is wired
-  on the breadboard. The wires are unfortunately allover the place and the image 
-  is not very clear.
+  the sensor. <br> I will use a free magnet at different fixed distances to calibrate the sensor 
+  then attach a smaller magnet to a wheel in a rotating DC motor to start calculating speed
+  then get this out put to an OLED screen. 
+
+  <h3 class="title">Hall Effect Sensor Calibration</h3>
+
+  <p>
+    To determine the relationship between distance and sensor output, I placed a 
+    stationary magnet at various distances from the Hall effect sensor.
+     I then recorded the sensor readings and ploted the output on matlab. The relationship
+     is not linear but an increase in distance from the sensor leads to a decrease in sensor output.
+     <br> Here is the arduino and Matlab code: 
+  </p>
+  <!-- Code Snippets -->
+  <p>
+    ESP32 Code for Reading Sensor Output:
+  <pre><code>
+  const int hallPin = 34; 
+  
+  void setup() {
+      Serial.begin(115200); 
+  }
+  
+  void loop() {
+      int sensorValue = analogRead(hallPin); // Read sensor voltage 
+      float voltage = sensorValue * (3.3 / 4095.0); // Convert to voltage 
+      
+      Serial.print("Sensor Value: ");
+      Serial.print(sensorValue);
+      Serial.print(" | Voltage: ");
+      Serial.println(voltage, 3); // Print voltage with 3 decimal places
+  
+      delay(500); // Read every 500ms
+  }
+  </code></pre>
 </p>
-<div class="d-flex justify-content-center">
-  <img src="BreadBoard.jpg" alt="Image of wired breadboard" style="width: 600px; height: auto;">
-</div>
-<p>
-  More coming up when I finish calibration.
-</p>
+  
+  <p>MATLAB Code for Plotting Calibration Data:
+  <pre><code>
+  % Data
+  distance = [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9]; % Distance  cm
+  sensor_value = [4095, 2937, 2590, 2220, 2062, 1986, 1933, 1901, 1891, 1887, 1886]; % ADC readings
+  
+  % Plot
+  figure;
+  plot(distance, sensor_value, 'bo-', 'LineWidth', 2, 'MarkerSize', 8);
+  xlabel('Distance (mm or cm)');
+  ylabel('Sensor Value (ADC)');
+  title('Hall Effect Sensor Calibration Curve');
+  grid on;
+  legend('Raw Sensor Value');
+  </code></pre>
+  </p>
+  <p>
+    And here are the images of the setup and the plot:
+  </p>
+
+  <!-- Images -->
+  <div style="display: flex; justify-content: center; gap: 20px; max-width: 100%;">
+    <div style="text-align: center; max-width: 250px;">
+        <img src="BreadBoardMagnetSetup.jpg" alt="Screenshot of box drawing" style="width: 100%; border-radius: 8px;">
+        <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;"> BreadBoard and Magnet Setup </p>
+    </div>
+    <div style="text-align: center; max-width: 250px;">
+      <img src="Serial Monitor.jpg" alt="Screenshot of box parameters in fusion" style="width: 100%; border-radius: 8px;">
+      <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Printed OutPut</p>
+    </div> 
+  </div>
+
+  <div style="text-align: center; max-width: 500px; margin: 0 auto;">
+    <img src="HallEffectCalibration.png" alt="Screenshot of box parameters in fusion" 
+         style="width: 100%; border-radius: 8px; display: block; margin: 0 auto;">
+    <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Matlab Plot</p>
+  </div>
+
+  <h4 class="title">Maping the output onto an LED screen</h4>
+
+  
 </div>
 </xmp>
 </body>
