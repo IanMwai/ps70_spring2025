@@ -111,103 +111,101 @@ and use the downloaded zips. <br> You will also need to downgrade the esp32 boar
 latest version is incomaptible with the A2DP library. You can do this by going to the board manager and selecting the version (2.0.9) On the version drop down.
 </p>
 
-<pre><code>
-    #include <Arduino.h>
-    #include <Adafruit_NeoPixel.h>
-    #include <BluetoothA2DPSink.h>
-    #include <arduinoFFT.h>
-    
-    #define LED_PIN 12          
-    #define NUM_LEDS 8         
-    #define SAMPLE_SIZE 256    
-    #define SAMPLES_PER_LED (SAMPLE_SIZE / NUM_LEDS) 
-    
-    Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
-    BluetoothA2DPSink a2dp_sink;
-    
-    //FFT buffers
-    float vReal[SAMPLE_SIZE];
-    float vImag[SAMPLE_SIZE];
-    
-    
-    ArduinoFFT<float> FFT(vReal, vImag, SAMPLE_SIZE, 44100.0); 
-    
-    void process_audio(const uint8_t *data, uint32_t len) {
-        int samples = len / 2;  
-        for (int i = 0; i < samples && i < SAMPLE_SIZE; i++) {
-            int16_t sample = ((int16_t *)data)[i];  
-            vReal[i] = sample;
-            vImag[i] = 0;  
-        }
-    
-        // windowing to improve FFT accuracy
-        FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);  
-        // Perform FFT
-        FFT.compute(FFT_FORWARD); 
-        FFT.complexToMagnitude(); 
-    
-        float volume = 0;
-        for (int i = 0; i < SAMPLE_SIZE; i++) {
-            volume += vReal[i];
-        }
-        volume /= SAMPLE_SIZE;
-    
-        // Map FFT output to LED colors based on frequency
-        for (int i = 0; i < NUM_LEDS; i++) {
-            int freqValue = 0;
-          
-            for (int j = 0; j < SAMPLES_PER_LED; j++) {
-                freqValue += vReal[i * SAMPLES_PER_LED + j];
-            }
-            freqValue /= SAMPLES_PER_LED; 
-    
-            int brightness = map(freqValue, 0, 1000, 0, 255); 
-            brightness = constrain(brightness, 0, 255);
-    
-            // Adjust brightness based on volume
-            brightness = map(volume, 0, 1000, 0, brightness);
-    
-            // Assign colors based on LED position
-            if (i < 3) {
-                strip.setPixelColor(i, strip.Color(0, 0, brightness));
-            } else if (i >= 3 && i < 6) {
-                strip.setPixelColor(i, strip.Color(brightness, 0, 0));
-            } else {
-                strip.setPixelColor(i, strip.Color(0, brightness, 0));
-            }
-        }
-        strip.show();
+<div>
+  <p>ESP32 Bluetooth Audio Visualizer Code (FFT + NeoPixels):</p>
+  <pre><code>#include &lt;Arduino.h&gt;
+#include &lt;Adafruit_NeoPixel.h&gt;
+#include &lt;BluetoothA2DPSink.h&gt;
+#include &lt;arduinoFFT.h&gt;
+
+#define LED_PIN 12          
+#define NUM_LEDS 8         
+#define SAMPLE_SIZE 256    
+#define SAMPLES_PER_LED (SAMPLE_SIZE / NUM_LEDS) 
+
+Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+BluetoothA2DPSink a2dp_sink;
+
+// FFT buffers
+float vReal[SAMPLE_SIZE];
+float vImag[SAMPLE_SIZE];
+
+ArduinoFFT&lt;float&gt; FFT(vReal, vImag, SAMPLE_SIZE, 44100.0); 
+
+void process_audio(const uint8_t *data, uint32_t len) {
+    int samples = len / 2;  
+    for (int i = 0; i &lt; samples &amp;&amp; i &lt; SAMPLE_SIZE; i++) {
+        int16_t sample = ((int16_t *)data)[i];  
+        vReal[i] = sample;
+        vImag[i] = 0;  
     }
-    
-    void setup() {
-        Serial.begin(115200);
-        strip.begin();
-        strip.show();
-        a2dp_sink.set_stream_reader(process_audio);
-        a2dp_sink.start("ESP32_Audio_Visualizer");
+
+    // Windowing to improve FFT accuracy
+    FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);  
+    FFT.compute(FFT_FORWARD); 
+    FFT.complexToMagnitude(); 
+
+    float volume = 0;
+    for (int i = 0; i &lt; SAMPLE_SIZE; i++) {
+        volume += vReal[i];
     }
-    
-    void loop() {
-        // Nothing needed here - audio is processed in process_audio()
+    volume /= SAMPLE_SIZE;
+
+    // Map FFT output to LED colors based on frequency
+    for (int i = 0; i &lt; NUM_LEDS; i++) {
+        int freqValue = 0;
+        for (int j = 0; j &lt; SAMPLES_PER_LED; j++) {
+            freqValue += vReal[i * SAMPLES_PER_LED + j];
+        }
+        freqValue /= SAMPLES_PER_LED; 
+
+        int brightness = map(freqValue, 0, 1000, 0, 255); 
+        brightness = constrain(brightness, 0, 255);
+        brightness = map(volume, 0, 1000, 0, brightness);
+
+        // Assign colors based on LED position
+        if (i &lt; 3) {
+            strip.setPixelColor(i, strip.Color(0, 0, brightness));
+        } else if (i &gt;= 3 &amp;&amp; i &lt; 6) {
+            strip.setPixelColor(i, strip.Color(brightness, 0, 0));
+        } else {
+            strip.setPixelColor(i, strip.Color(0, brightness, 0));
+        }
     }
-    </code></pre>
+    strip.show();
+}
+
+void setup() {
+    Serial.begin(115200);
+    strip.begin();
+    strip.show();
+    a2dp_sink.set_stream_reader(process_audio);
+    a2dp_sink.start("ESP32_Audio_Visualizer");
+}
+
+void loop() {
+    // Nothing needed here - audio is processed in process_audio()
+}
+  </code></pre>
+</div>
 
 <p>
-  The problem with this implemenation is that the mid leds never really lit up.
+  The problem with this implementation is that the mid leds never really lit up.
   I never figured out the probelem but it could be that the music simply
   didn't have enough mid frequencies to light up the LEDs or that it took 
   more energy to light up blue. <br> Here is how that looked like when music was playing:
+  <br>(Since the ESP 32 acts as the speaker, the songs are played through the ESP32 and not the computer and hence are not 
+  audible in the videos.)
 </p>
 <br>
 
 
-<div class="container">
-  <div class="d-flex justify-content-center">
-      <video width="80%" controls class="video-size">
-          <source src="WithoutGradient.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-      </video>
-  </div>
+<div style="text-align: center; max-width: 350px; margin: 0 auto;">
+  <video width="100%" height="auto" controls>
+    <source src="WithoutGradient.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Video of the output without gradient mapping</p>
 </div>
 
 <br>
@@ -220,120 +218,112 @@ latest version is incomaptible with the A2DP library. You can do this by going t
   an equal mix of red and green. <br> Below is the code I used to implement this:
 </p>
 
-<pre><code>
-  #include <Arduino.h>
-    #include <Adafruit_NeoPixel.h>
-    #include <BluetoothA2DPSink.h>
-    #include <arduinoFFT.h>
-    
-    #define LED_PIN 12          // The pin LEDs are connected to
-    #define NUM_LEDS 8         // Number of LEDs in the neopixel strip
-    #define SAMPLE_SIZE 256    // Number of samples for FFT
-    #define SAMPLES_PER_LED (SAMPLE_SIZE / NUM_LEDS) // FFT bins per LED
-    
-    Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
-    BluetoothA2DPSink a2dp_sink;
-    
-    // Declaring FFT buffers
-    float vReal[SAMPLE_SIZE];
-    float vImag[SAMPLE_SIZE];
-    
-    // Initializing ArduinoFFT
-    ArduinoFFT<float> FFT(vReal, vImag, SAMPLE_SIZE, 44100.0); 
-    
-    void process_audio(const uint8_t *data, uint32_t len) {
-        int samples = len / 2;  
-        for (int i = 0; i < samples && i < SAMPLE_SIZE; i++) {
-            int16_t sample = ((int16_t *)data)[i];  
-            vReal[i] = sample;
-            vImag[i] = 0; //imaginzry component intialized to 0 becaise we only need real components 
-        }
-    
-        // Apply windowing to improve FFT accuracy
-        FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);  
-    
-        // Perform FFT
-        FFT.compute(FFT_FORWARD); 
-        FFT.complexToMagnitude(); 
-    
-        // Calculate overall volume
-        float volume = 0;
-        for (int i = 0; i < SAMPLE_SIZE; i++) {
-            volume += vReal[i];
-        }
-        volume /= SAMPLE_SIZE;
-    
-        // We want to map the FFT output to LED colors so they change based on frequency
-        for (int i = 0; i < NUM_LEDS; i++) {
-            int freqValue = 0;
-            // This sums the magnitude of the FFT bins corresponding to this LED
-            for (int j = 0; j < SAMPLES_PER_LED; j++) {
-                freqValue += vReal[i * SAMPLES_PER_LED + j];
-            }
-            freqValue /= SAMPLES_PER_LED; // Average the magnitude for this LED
-    
-            // Then this part actually does the mapping if the frequency value to brightness (0-255)
-            int brightness = map(freqValue, 0, 1000, 0, 255); 
-            brightness = constrain(brightness, 0, 255);
-    
-            // From the volume calculated before we can also adjust brightness
-            brightness = map(volume, 0, 1000, 0, brightness);
-    
-            // Assign colors based on LED position so we have a gradient between Red and Blue
-            if (i < 2) {
-                // Bottom 2 LEDs (Bass) - Red
-                strip.setPixelColor(i, strip.Color(brightness, 0, 0));
-            } else if (i >= 2 && i < 6) {
-                // Middle LEDs - Smooth gradient from Red to Green
-                float gradientPosition = (float)(i - 2) / 3.0; // Normalize position to 0.0 to 1.0
-                int red = brightness * (1.0 - gradientPosition);
-                int green = brightness * gradientPosition;
-                strip.setPixelColor(i, strip.Color(red, green, 0));
-            } else {
-                // Top 2 LEDs (Treble) - Green
-                strip.setPixelColor(i, strip.Color(0, brightness, 0));
-            }
-        }
-        strip.show();
+<div>
+  <p>Improved ESP32 Audio Visualizer Code with Gradient LED Mapping:</p>
+  <pre><code>#include &lt;Arduino.h&gt;
+#include &lt;Adafruit_NeoPixel.h&gt;
+#include &lt;BluetoothA2DPSink.h&gt;
+#include &lt;arduinoFFT.h&gt;
+
+#define LED_PIN 12          // The pin LEDs are connected to
+#define NUM_LEDS 8          // Number of LEDs in the neopixel strip
+#define SAMPLE_SIZE 256     // Number of samples for FFT
+#define SAMPLES_PER_LED (SAMPLE_SIZE / NUM_LEDS) // FFT bins per LED
+
+Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+BluetoothA2DPSink a2dp_sink;
+
+// Declaring FFT buffers
+float vReal[SAMPLE_SIZE];
+float vImag[SAMPLE_SIZE];
+
+// Initializing ArduinoFFT
+ArduinoFFT&lt;float&gt; FFT(vReal, vImag, SAMPLE_SIZE, 44100.0); 
+
+void process_audio(const uint8_t *data, uint32_t len) {
+    int samples = len / 2;  
+    for (int i = 0; i &lt; samples &amp;&amp; i &lt; SAMPLE_SIZE; i++) {
+        int16_t sample = ((int16_t *)data)[i];  
+        vReal[i] = sample;
+        vImag[i] = 0; // imaginary component initialized to 0 because we only need real components 
     }
-    
-    void setup() {
-        Serial.begin(115200);
-        strip.begin();
-        strip.show();
-        a2dp_sink.set_stream_reader(process_audio);
-        a2dp_sink.start("Ian_Toyota_Audio_Visualizer");
+
+    // Apply windowing to improve FFT accuracy
+    FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);  
+
+    // Perform FFT
+    FFT.compute(FFT_FORWARD); 
+    FFT.complexToMagnitude(); 
+
+    // Calculate overall volume
+    float volume = 0;
+    for (int i = 0; i &lt; SAMPLE_SIZE; i++) {
+        volume += vReal[i];
     }
-    
-    void loop() {
-        // Nothing needed here - audio is processed in process_audio()
-    }    
+    volume /= SAMPLE_SIZE;
+
+    // Map FFT output to LED colors based on frequency
+    for (int i = 0; i &lt; NUM_LEDS; i++) {
+        int freqValue = 0;
+        for (int j = 0; j &lt; SAMPLES_PER_LED; j++) {
+            freqValue += vReal[i * SAMPLES_PER_LED + j];
+        }
+        freqValue /= SAMPLES_PER_LED;
+
+        int brightness = map(freqValue, 0, 1000, 0, 255); 
+        brightness = constrain(brightness, 0, 255);
+
+        brightness = map(volume, 0, 1000, 0, brightness);
+
+        if (i &lt; 2) {
+            // Bottom 2 LEDs (Bass) - Red
+            strip.setPixelColor(i, strip.Color(brightness, 0, 0));
+        } else if (i &gt;= 2 &amp;&amp; i &lt; 6) {
+            // Middle LEDs - Smooth gradient from Red to Green
+            float gradientPosition = (float)(i - 2) / 3.0; // Normalize position to 0.0 to 1.0
+            int red = brightness * (1.0 - gradientPosition);
+            int green = brightness * gradientPosition;
+            strip.setPixelColor(i, strip.Color(red, green, 0));
+        } else {
+            // Top 2 LEDs (Treble) - Green
+            strip.setPixelColor(i, strip.Color(0, brightness, 0));
+        }
+    }
+    strip.show();
+}
+
+void setup() {
+    Serial.begin(115200);
+    strip.begin();
+    strip.show();
+    a2dp_sink.set_stream_reader(process_audio);
+    a2dp_sink.start("Ian_Toyota_Audio_Visualizer");
+}
+
+void loop() {
+    // Nothing needed here - audio is processed in process_audio()
+}
   </code></pre>
-
-<p>
-      These below videos show how the new implementation looks like. The first video is of a song with more bass and the second
-      one has more trebble.
-</p>
-
-
-<div class="container">
-  <!-- Second video -->
-  <div class="d-flex justify-content-center">
-      <video width="80%" controls class="video-size">
-          <source src="High Base Song.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-      </video>
-  </div>
 </div>
 
-<div class="container">
-  <!-- Second video -->
-  <div class="d-flex justify-content-center">
-      <video width="80%" controls class="video-size">
-          <source src="High trebble Song.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-      </video>
-  </div>
+<p>
+      These below videos show how the new implementation looks like.
+</p>
+
+<div style="text-align: center; max-width: 300px; margin: 0 auto;">
+  <video width="100%" height="auto" controls>
+    <source src="High Base Song.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">High base song</p>
+</div>
+
+<div style="text-align: center; max-width: 300px; margin: 0 auto;">
+  <video width="100%" height="auto" controls>
+    <source src="High trebble Song.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">High Trebble song</p>
 </div>
 
 </div>
