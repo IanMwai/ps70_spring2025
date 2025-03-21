@@ -229,105 +229,105 @@
     the wheel and the equivalent speed. See video below for set up and serial monitor output. <br>
   </p>
 
-  <p>
-    Arduino Code for speed Calculation:
-  <pre><code>
-        // Forward declaration of the interrupt handler function
-    void IRAM_ATTR hallInterruptWrapper();
-
-    class WheelSpeedSensor {
-    private:
-        int hallPin;
-        volatile unsigned long lastTime;
-        volatile unsigned long interval;
-        const float radius = 0.05;  // 5 cm in meters
-        unsigned long lastPrintTime = 0;
-
-        const unsigned long minValidInterval = 5000;  // Ignore intervals shorter than 5ms (5000 μs)
-        const int filterSize = 5;  // Moving average filter size
-        float rpmBuffer[5] = {0};  // Store last 5 RPM values
-        int bufferIndex = 0;
-
-    public:
-        // Constructor
-        WheelSpeedSensor(int pin) {
-            hallPin = pin;
-            lastTime = 0;
-            interval = 0;
-        }
-
-        // Interrupt function
-        void IRAM_ATTR hallInterrupt() {
-            unsigned long currentTime = micros();
-            unsigned long newInterval = currentTime - lastTime;
-
-            // Ignore very small intervals (noise)
-            if (newInterval > minValidInterval) {
-                interval = newInterval;
-                lastTime = currentTime;
-            }
-        }
-
-        // Initialize sensor
-        void begin() {
-            pinMode(hallPin, INPUT);
-            attachInterrupt(digitalPinToInterrupt(hallPin), hallInterruptWrapper, FALLING);
-        }
-
-        // Compute RPM and speed with smoothing
-        void update() {
-            if (interval > 0) {
-                float T = interval / 1e6;  // Convert to seconds
-                float RPM = 60.0 / T;
-                float speed = (2 * 3.1416 / T) * radius;
-
-                // Apply Moving Average Filter to RPM
-                rpmBuffer[bufferIndex] = RPM;
-                bufferIndex = (bufferIndex + 1) % filterSize;
-                float smoothedRPM = 0;
-                for (int i = 0; i < filterSize; i++) {
-                    smoothedRPM += rpmBuffer[i];
-                }
-                smoothedRPM /= filterSize;
-
-                // Print every 500ms
-                if (millis() - lastPrintTime >= 500) {
-                    Serial.print("RPM: ");
-                    Serial.print(smoothedRPM);
-                    Serial.print(" | Speed: ");
-                    Serial.print(speed, 3);
-                    Serial.println(" m/s");
-
-                    lastPrintTime = millis();
-                }
-            }
-        }
-    };
-
-    // Global instance of the class
-    WheelSpeedSensor wheelSensor(34);
-
-    // Define the actual interrupt wrapper function
-    void IRAM_ATTR hallInterruptWrapper() {
-        wheelSensor.hallInterrupt();
-    }
-
-    void setup() {
-        Serial.begin(115200);
-        wheelSensor.begin();
-    }
-
-    void loop() {
-        wheelSensor.update();
-    }
-  <code></pre>
-  </p>
+  <div>
+    <p>Arduino Code for Speed Calculation:</p>
+    <pre><code>
+  // Forward declaration of the interrupt handler function
+  void IRAM_ATTR hallInterruptWrapper();
+  
+  class WheelSpeedSensor {
+  private:
+      int hallPin;
+      volatile unsigned long lastTime;
+      volatile unsigned long interval;
+      const float radius = 0.05;  // 5 cm in meters
+      unsigned long lastPrintTime = 0;
+  
+      const unsigned long minValidInterval = 5000;  // Ignore intervals shorter than 5ms (5000 μs)
+      const int filterSize = 5;  // Moving average filter size
+      float rpmBuffer[5] = {0};  // Store last 5 RPM values
+      int bufferIndex = 0;
+  
+  public:
+      // Constructor
+      WheelSpeedSensor(int pin) {
+          hallPin = pin;
+          lastTime = 0;
+          interval = 0;
+      }
+  
+      // Interrupt function
+      void IRAM_ATTR hallInterrupt() {
+          unsigned long currentTime = micros();
+          unsigned long newInterval = currentTime - lastTime;
+  
+          // Ignore very small intervals (noise)
+          if (newInterval > minValidInterval) {
+              interval = newInterval;
+              lastTime = currentTime;
+          }
+      }
+  
+      // Initialize sensor
+      void begin() {
+          pinMode(hallPin, INPUT);
+          attachInterrupt(digitalPinToInterrupt(hallPin), hallInterruptWrapper, FALLING);
+      }
+  
+      // Compute RPM and speed with smoothing
+      void update() {
+          if (interval > 0) {
+              float T = interval / 1e6;  // Convert to seconds
+              float RPM = 60.0 / T;
+              float speed = (2 * 3.1416 / T) * radius;
+  
+              // Apply Moving Average Filter to RPM
+              rpmBuffer[bufferIndex] = RPM;
+              bufferIndex = (bufferIndex + 1) % filterSize;
+              float smoothedRPM = 0;
+              for (int i = 0; i < filterSize; i++) {
+                  smoothedRPM += rpmBuffer[i];
+              }
+              smoothedRPM /= filterSize;
+  
+              // Print every 500ms
+              if (millis() - lastPrintTime >= 500) {
+                  Serial.print("RPM: ");
+                  Serial.print(smoothedRPM);
+                  Serial.print(" | Speed: ");
+                  Serial.print(speed, 3);
+                  Serial.println(" m/s");
+  
+                  lastPrintTime = millis();
+              }
+          }
+      }
+  };
+  
+  // Global instance of the class
+  WheelSpeedSensor wheelSensor(34);
+  
+  // Define the actual interrupt wrapper function
+  void IRAM_ATTR hallInterruptWrapper() {
+      wheelSensor.hallInterrupt();
+  }
+  
+  void setup() {
+      Serial.begin(115200);
+      wheelSensor.begin();
+  }
+  
+  void loop() {
+      wheelSensor.update();
+  }
+    </code></pre>
+  </div>
 
   <p>
     And here is a video of the setup and the output in the serial monitor:
   </p> 
   
-  <div style="text-align: center; max-width: 700px; margin: 0 auto;">
+  <div style="text-align: center; max-width: 400px; margin: 0 auto;">
     <video width="100%" height="auto" controls>
       <source src="Video1.mp4" type="video/mp4">
       Your browser does not support the video tag.
@@ -338,7 +338,7 @@
   <p>
     This output is not completely accurate and this could be because of false
     triggers. The wheel is too small and the hall effect sensor may be triggered
-    several times in a single revolution. I will use a bigger wheel when mapping this data
+    several times in a single revolution. I will use a bigger wheel when transferring this this data
     to an OLED screen.
   </p>
   
