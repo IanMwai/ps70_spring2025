@@ -27,9 +27,289 @@
 
 
 
-<h4>Assignment: Minimum Viable Product for Final Project</h4>
+<h4 class="title">Assignment: Minimum Viable Product for Final Project</h4>
 
+<p>
+  My goals for this MVP were:
+  <br>1. Get my buttons, LEDs, and light-dependent resistor (LDR) setup working.
+  <br>2. Improve speed calculation.
+  <br>3. Get my OLED display working.
+  <br>4. Improve case design.
+  <br><br>
+  I have achieved all of these goals except one: calibrating and using the light-dependent resistor.
+</p>
 
+<h4 class="title">Button, LED, and LDR Setup and Speed Calculation</h4>
+<p>
+  I Initially thought this would be easy but it ended up taking most of my time
+  this week. For speed calculation, I had already optimized it in week 6 so I just needed to 
+  carry the setup forward to week 6 and merge it with the LED designs. <br>
+  For the LEDs which will serve as indicator lights, the idea was to connect three red LEDs 
+  in parallel each connected to a 100 ohm resistor
+  and all of the LEDs connected to an ESP32 pin. I would then have a repeat of this setup in the other
+  side too so I have both right and left indicators. Then I would connect two butttons, one for 
+  each side to an input pin and when the buttons are pressed, the LEDs would light up or go off. <br>
+  <br>I tried implementing this but the pins I innitially chose seem to have had a very low output 
+  voltage, the LEDs barely lit up. I therefore changed the setup to use an external power supply
+  and a transistor to control the LEDS. There were no MOSFETS in lab so I tried using a BJT, number 2n3906331.
+  This kind of worked because I could get the LEDs to light up, but controlling them was hard. 
+  They could not turn the LEDs off completely, it just dimmed them a bit. <br> So I had to get MOSFETS from
+  home, I had IRLZ14. These made it much much better. The LEDs were individually conneceted to 
+  the power bus via a 100 ohm resistor and then the cathodes were connected to the drain pin. The 
+  gate pin was connected to ESP32 for signal control and the source pin grounded. <br> I also added functionality
+  such that when a button is pressed, LEDs would turn on and blink and a message will be shown on 
+  the OLED display saying which indicator was on or if both were on. I am looking forward to see
+  how this would look like on the bike. 
+</p>
+
+<div>
+  <p>
+    ESP 32 code for LED setup and Speed calculation:
+  </p>
+  <pre><code>
+    #include <Wire.h>
+      #include <Adafruit_GFX.h>
+      #include <Adafruit_SSD1306.h>
+      
+      // OLED setup
+      #define SCREEN_WIDTH 128
+      #define SCREEN_HEIGHT 64
+      Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1); // No reset pin
+      
+      // Forward declaration for ISR
+      void IRAM_ATTR hallInterruptWrapper();
+      
+      // Pin definitions
+      #define LEFT_LED_CTRL 4
+      #define RIGHT_LED_CTRL 25
+      #define LEFT_BTN_PIN 26
+      #define RIGHT_BTN_PIN 27
+      
+      // LED blink control flags and state
+      bool leftLedBlinking = false;
+      bool rightLedBlinking = false;
+      bool leftLedCurrentState = false;
+      bool rightLedCurrentState = false;
+      unsigned long lastBlinkTime = 0;
+      const unsigned long blinkInterval = 500; // LED toggle interval (ms)
+      
+      // Button tracking
+      bool lastLeftBtnState = HIGH;
+      bool lastRightBtnState = HIGH;
+      
+      // Class for handling speed sensing with a Hall effect sensor
+      class WheelSpeedSensor {
+      private:
+          int hallPin;
+          volatile unsigned long lastTime = 0;       // Time of last pulse
+          volatile unsigned long interval = 0;       // Time between pulses
+          const float radius = 0.10;                 // Wheel radius in meters
+          unsigned long lastPrintTime = 0;
+      
+          static const unsigned long minValidInterval = 5000;  // Ignore noisy pulses
+          static const int filterSize = 5;
+          float rpmBuffer[filterSize] = {0};         // Buffer for smoothing RPM
+          int bufferIndex = 0;
+      
+      public:
+          WheelSpeedSensor(int pin) : hallPin(pin) {}
+      
+          // Interrupt handler for each magnet pass
+          void IRAM_ATTR hallInterrupt() {
+              unsigned long currentTime = micros();
+              unsigned long newInterval = currentTime - lastTime;
+      
+              if (newInterval > minValidInterval) {
+                  interval = newInterval;
+                  lastTime = currentTime;
+              }
+          }
+      
+          // Set up sensor pin and attach interrupt
+          void begin() {
+              pinMode(hallPin, INPUT);
+              attachInterrupt(digitalPinToInterrupt(hallPin), hallInterruptWrapper, FALLING);
+          }
+      
+          // Measure speed and update OLED + serial output
+          void update() {
+              unsigned long timeSinceLastPulse = millis() - (lastTime / 1000);
+      
+              // No pulse received in 1 second → assume stopped
+              if (timeSinceLastPulse > 1000) {
+                  if (millis() - lastPrintTime >= 500) {
+                      display.clearDisplay();
+                      display.setCursor(0, 0);
+                      display.setTextSize(1);
+                      display.println("Speed:");
+                      display.setTextSize(2);
+                      display.print("0.00 m/s");
+                      display.display();
+      
+                      Serial.println("RPM: 0 | Speed: 0.000 m/s");
+                      lastPrintTime = millis();
+                  }
+                  return;
+              }
+      
+              // Calculate speed if interval available
+              if (interval > 0) {
+                  float T = interval / 1e6;
+                  float RPM = 60.0 / T;
+                  float speed = (2 * 3.1416 / T) * radius;
+      
+                  // Store RPM in buffer for smoothing
+                  rpmBuffer[bufferIndex] = RPM;
+                  bufferIndex = (bufferIndex + 1) % filterSize;
+      
+                  float smoothedRPM = 0;
+                  for (int i = 0; i < filterSize; i++) {
+                      smoothedRPM += rpmBuffer[i];
+                  }
+                  smoothedRPM /= filterSize;
+      
+                  if (millis() - lastPrintTime >= 500) {
+                      display.clearDisplay();
+                      display.setCursor(0, 0);
+                      display.setTextSize(1);
+                      display.print("Speed: ");
+                      display.print(speed, 2);
+                      display.print(" m/s");
+      
+                      // Show active indicators
+                      if (leftLedBlinking) {
+                          display.setTextSize(1);
+                          display.setCursor(0, 48);
+                          display.println("Left Indicator ON");
+                      }
+                      if (rightLedBlinking) {
+                          display.setTextSize(1);
+                          display.setCursor(0, 56);
+                          display.println("Right Indicator ON");
+                      }
+      
+                      display.display();
+      
+                      Serial.print("RPM: ");
+                      Serial.print(smoothedRPM);
+                      Serial.print(" | Speed: ");
+                      Serial.print(speed, 3);
+                      Serial.println(" m/s");
+      
+                      lastPrintTime = millis();
+                  }
+              }
+          }
+      };
+      
+      // Instantiate sensor
+      WheelSpeedSensor wheelSensor(34);
+      
+      // ISR wrapper function
+      void IRAM_ATTR hallInterruptWrapper() {
+          wheelSensor.hallInterrupt();
+      }
+      
+      void setup() {
+          Serial.begin(115200);
+          Wire.begin(21, 22); // Set SDA and SCL pins for OLED
+          wheelSensor.begin();
+      
+          if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+              Serial.println(F("SSD1306 allocation failed"));
+              while (true); // Halt if OLED init fails
+          }
+      
+          // Initial screen message
+          display.clearDisplay();
+          display.setTextSize(1);
+          display.setTextColor(SSD1306_WHITE);
+          display.setCursor(0, 0);
+          display.println("Speed Monitor");
+          display.display();
+      
+          // Set up GPIOs
+          pinMode(LEFT_LED_CTRL, OUTPUT);
+          pinMode(RIGHT_LED_CTRL, OUTPUT);
+          pinMode(LEFT_BTN_PIN, INPUT_PULLUP);
+          pinMode(RIGHT_BTN_PIN, INPUT_PULLUP);
+      
+          digitalWrite(LEFT_LED_CTRL, LOW);  // Initial OFF
+          digitalWrite(RIGHT_LED_CTRL, LOW);
+      }
+      
+      void loop() {
+          wheelSensor.update();
+          unsigned long currentMillis = millis();
+      
+          // Toggle LEDs if blinking is enabled
+          if (currentMillis - lastBlinkTime >= blinkInterval) {
+              lastBlinkTime = currentMillis;
+      
+              if (leftLedBlinking) {
+                  leftLedCurrentState = !leftLedCurrentState;
+                  digitalWrite(LEFT_LED_CTRL, leftLedCurrentState ? LOW : HIGH);
+              }
+      
+              if (rightLedBlinking) {
+                  rightLedCurrentState = !rightLedCurrentState;
+                  digitalWrite(RIGHT_LED_CTRL, rightLedCurrentState ? LOW : HIGH);
+              }
+          }
+      
+          // Handle left button press
+          bool readingLeft = digitalRead(LEFT_BTN_PIN) == LOW;
+          if (readingLeft && !lastLeftBtnState) {
+              leftLedBlinking = !leftLedBlinking;
+              if (!leftLedBlinking) {
+                  digitalWrite(LEFT_LED_CTRL, LOW);
+                  leftLedCurrentState = false;
+              }
+          }
+          lastLeftBtnState = readingLeft;
+      
+          // Handle right button press
+          bool readingRight = digitalRead(RIGHT_BTN_PIN) == LOW;
+          if (readingRight && !lastRightBtnState) {
+              rightLedBlinking = !rightLedBlinking;
+              if (!rightLedBlinking) {
+                  digitalWrite(RIGHT_LED_CTRL, LOW);
+                  rightLedCurrentState = false;
+              }
+          }
+          lastRightBtnState = readingRight;
+      }
+  </code></pre>
+
+</div>
+
+<p>
+  And here is the video:
+     <div style="text-align: center; max-width: 700px; margin: 0 auto;">
+      <video width="100%" height="auto" controls>
+        <source src="Video1.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Video of the setup and screen</p>
+    </div>
+</p>
+
+<h4 class="title">Case Design Improvement</h4>
+<p>
+  I am trying to make my case fully snap fit as the resolution of the printer is not high enough
+  to print threads. I also increased the side of the screwholes to M5 as that is the size of my bicycle 
+  screw holes. This is how it currently looks like but I will add more design improvemnts in later
+  iterations:
+       <div style="text-align: center; max-width: 700px; margin: 0 auto;">
+        <video width="100%" height="auto" controls>
+          <source src="Video2.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Snapfit Case</p>
+      </div>
+
+</p>
+  
 </div>
 </xmp>
 </body>

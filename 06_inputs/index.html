@@ -59,6 +59,7 @@
   </p>
 <p>
   Arduino code:
+</p>
   <pre><code>
     long result;   //variable for the result of the tx_rx measurement.
     int analog_pin = 32;
@@ -99,10 +100,11 @@
     }                                          // End of tx_rx function.
     
       </code></pre>
-</p>
+
 <br>
 <p>
   Matlab Code:
+</p>
 
   <pre><code>
     % Data
@@ -128,7 +130,7 @@
         text(water_level(i), tx_value(i), sprintf('  %d', tx_value(i)), 'FontSize', 10);
     end
       </code></pre>
-</p>
+
 
 <div style="text-align: center; max-width: 700px; margin: 0 auto;">
   <img src="CapacitivePlot.png" alt="Screenshot of box parameters in fusion" 
@@ -221,7 +223,7 @@
     <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Matlab Plot</p>
   </div>
 
-  <h4 class="title">Maping the output onto an LED screen</h4>
+  <h4 class="title">Calculating speed</h4>
   <p>
     First, I designed a very simple wheel in fusion 360 and laser cut it. The wheel could rotate on the DC motor
     and had radius of about 7.5 cm. It also had a tiny hole 5 cm from the center where I stuck a 
@@ -341,6 +343,162 @@
     several times in a single revolution. I will use a bigger wheel when transferring this this data
     to an OLED screen.
   </p>
+
+  <h4 class="title">Displaying output on OLED screen</h4>
+
+  <p>
+    I had to install Adafruit_GFX, Adafruit_SSD1306 from github zips and Adafruit_BusIO from inbuilt arduino 
+    libraries to get the OLED screen to work. I then connected the VCC pin to 3.3V, GND to GND, SDA to pin 21 and SCL to pin 22. Then
+   <br> Additonally, I increased the wheel size by double to reduce false positives in the hall effect sensor.
+    I used the arduino code below to display the speed on the OLED screen and serial monitor: 
+  </p>
+
+  <div>
+    <pre><code class="language-cpp">
+      #include &lt;Wire.h&gt;
+      #include &lt;Adafruit_GFX.h&gt;
+      #include &lt;Adafruit_SSD1306.h&gt;
+      
+      // OLED setup
+      #define SCREEN_WIDTH 128
+      #define SCREEN_HEIGHT 64
+      Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1); // No reset pin
+      
+      // Forward declaration
+      void IRAM_ATTR hallInterruptWrapper();
+      
+      class WheelSpeedSensor {
+      private:
+          int hallPin;
+          volatile unsigned long lastTime = 0;
+          volatile unsigned long interval = 0;
+          const float radius = 0.10;  // 10 cm in meters
+          unsigned long lastPrintTime = 0;
+      
+          static const unsigned long minValidInterval = 5000;  // Ignore pulses < 5ms
+          static const int filterSize = 5;
+          float rpmBuffer[filterSize] = {0};
+          int bufferIndex = 0;
+      
+      public:
+          WheelSpeedSensor(int pin) : hallPin(pin) {}
+      
+          void IRAM_ATTR hallInterrupt() {
+              unsigned long currentTime = micros();
+              unsigned long newInterval = currentTime - lastTime;
+      
+              if (newInterval > minValidInterval) {
+                  interval = newInterval;
+                  lastTime = currentTime;
+              }
+          }
+      
+          void begin() {
+              pinMode(hallPin, INPUT);
+              attachInterrupt(digitalPinToInterrupt(hallPin), hallInterruptWrapper, FALLING);
+          }
+      
+          void update() {
+              unsigned long timeSinceLastPulse = millis() - (lastTime / 1000);
+      
+              // Show zero speed if no pulse in 1 second
+              if (timeSinceLastPulse > 1000) {
+                  if (millis() - lastPrintTime >= 500) {
+                      display.clearDisplay();
+                      display.setCursor(0, 0);
+                      display.setTextSize(1);
+                      display.println("RPM: 0");
+                      display.println("Speed: 0.000 m/s");
+                      display.display();
+      
+                      Serial.println("RPM: 0 | Speed: 0.000 m/s");
+                      lastPrintTime = millis();
+                  }
+                  return;
+              }
+      
+              if (interval > 0) {
+                  float T = interval / 1e6;
+                  float RPM = 60.0 / T;
+                  float speed = (2 * 3.1416 / T) * radius;
+      
+                  rpmBuffer[bufferIndex] = RPM;
+                  bufferIndex = (bufferIndex + 1) % filterSize;
+      
+                  float smoothedRPM = 0;
+                  for (int i = 0; i < filterSize; i++) {
+                      smoothedRPM += rpmBuffer[i];
+                  }
+                  smoothedRPM /= filterSize;
+      
+                  if (millis() - lastPrintTime >= 500) {
+                      display.clearDisplay();
+                      display.setCursor(0, 0);
+                      display.setTextSize(1);
+                      display.print("RPM: ");
+                      display.println(smoothedRPM, 1);
+                      display.print("Speed: ");
+                      display.print(speed, 2);
+                      display.println(" m/s");
+                      display.display();
+      
+                      Serial.print("RPM: ");
+                      Serial.print(smoothedRPM);
+                      Serial.print(" | Speed: ");
+                      Serial.print(speed, 3);
+                      Serial.println(" m/s");
+      
+                      lastPrintTime = millis();
+                  }
+              }
+          }
+      };
+      
+      // Global instance
+      WheelSpeedSensor wheelSensor(34);
+      
+      // Interrupt wrapper
+      void IRAM_ATTR hallInterruptWrapper() {
+          wheelSensor.hallInterrupt();
+      }
+      
+      void setup() {
+          Serial.begin(115200);
+          Wire.begin(21, 22); // SDA, SCL
+          wheelSensor.begin();
+      
+          if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+              Serial.println(F("SSD1306 allocation failed"));
+              while (true); // Halt
+          }
+      
+          display.clearDisplay();
+          display.setTextSize(1);
+          display.setTextColor(SSD1306_WHITE);
+          display.setCursor(0, 0);
+          display.println("Speed Monitor");
+          display.display();
+          delay(1000);
+      }
+      
+      void loop() {
+          wheelSensor.update();
+      }
+      </code></pre>
+  </div>
+
+<p>
+  And here is a video of the setup and the output in the OLED screen and serial monitor:
+
+  <div style="text-align: center; max-width: 300px; margin: 0 auto;">
+    <video width="100%" height="auto" controls>
+      <source src="Video2.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Video of the setup and screen</p>
+  </div>
+</p>
+
   
 </div>
 </xmp>
