@@ -43,7 +43,7 @@
 <p>
   I Initially thought this would be easy but it ended up taking most of my time
   this week. For speed calculation, I had already optimized it in week 6 so I just needed to 
-  carry the setup forward to week 6 and merge it with the LED designs. <br>
+  carry the setup forward to week 6 and merge it with the LED designs. <br><br>
   For the LEDs which will serve as indicator lights, the idea was to connect three red LEDs 
   in parallel each connected to a 100 ohm resistor
   and all of the LEDs connected to an ESP32 pin. I would then have a repeat of this setup in the other
@@ -53,10 +53,10 @@
   voltage, the LEDs barely lit up. I therefore changed the setup to use an external power supply
   and a transistor to control the LEDS. There were no MOSFETS in lab so I tried using a BJT, number 2n3906331.
   This kind of worked because I could get the LEDs to light up, but controlling them was hard. 
-  They could not turn the LEDs off completely, it just dimmed them a bit. <br> So I had to get MOSFETS from
+  They could not turn the LEDs off completely, it just dimmed them a bit. <br><br> So I had to get MOSFETS from
   home, I had IRLZ14. These made it much much better. The LEDs were individually conneceted to 
   the power bus via a 100 ohm resistor and then the cathodes were connected to the drain pin. The 
-  gate pin was connected to ESP32 for signal control and the source pin grounded. <br> I also added functionality
+  gate pin was connected to ESP32 for signal control and the source pin grounded. <br><br> I also added functionality
   such that when a button is pressed, LEDs would turn on and blink and a message will be shown on 
   the OLED display saying which indicator was on or if both were on. I am looking forward to see
   how this would look like on the bike. 
