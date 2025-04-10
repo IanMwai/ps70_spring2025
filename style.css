@@ -61,8 +61,8 @@ nav {
   border: 3px outset #FFFFFF;
   border-radius: 40px;
   padding: 10px 30px;
-  background-color: #a3a3a3;
-  color: #000000;
+  background-color: crimson;
+  color: #FFFFFF;
   transition: 0.3s;
 }
 

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Access Code Entry</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #a0c4ff, #cdb4db);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: #ffffffcc;
+      padding: 30px 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 12px;
+      width: 80%;
+      font-size: 18px;
+      border: 2px solid #aaa;
+      border-radius: 8px;
+      outline: none;
+      transition: 0.3s ease;
+      text-align: center;
+      letter-spacing: 3px;
+    }
+
+    input[type="text"]:focus {
+      border-color: #7b2cbf;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #7b2cbf;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #5a189a;
+    }
+
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #333;
+      min-height: 48px;
+      white-space: pre-line;
+    }
+
+    .attempt-counter {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .lockout {
+      color: #d62828;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Enter Access Code</h2>
+    <input type="text" id="codeInput" placeholder="Enter 4-digit Code" maxlength="4" inputmode="numeric" pattern="\d*" />
+    <br />
+    <button id="submitBtn" onclick="sendCode()">Submit</button>
+    <p id="status"></p>
+    <div id="attemptCounter" class="attempt-counter"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDrExaIlGlpGHFJ3jJMCcBgWRuFb2GJjUI",
+      authDomain: "week-9-a4ee0.firebaseapp.com",
+      databaseURL: "https://week-9-a4ee0-default-rtdb.firebaseio.com",
+      projectId: "week-9-a4ee0",
+      storageBucket: "week-9-a4ee0.firebasestorage.app",
+      messagingSenderId: "235208560949",
+      appId: "1:235208560949:web:0660155e2228b193c5fc7c",
+      measurementId: "G-QWLBDSEL43"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    firebase.auth().signInAnonymously();
+
+    let wrongAttempts = 0;
+    let isLockedOut = false;
+    let lockoutTimer;
+
+    function updateAttemptCounter() {
+      const counter = document.getElementById("attemptCounter");
+      counter.textContent = `Attempts: ${wrongAttempts}/3`;
+    }
+
+    function startLockout() {
+      isLockedOut = true;
+      const submitBtn = document.getElementById("submitBtn");
+      const status = document.getElementById("status");
+      const input = document.getElementById("codeInput");
+
+      submitBtn.disabled = true;
+      input.disabled = true;
+
+      let secondsLeft = 30;
+      status.innerHTML = `<span class="lockout">Too many wrong attempts!\nPlease wait ${secondsLeft} seconds</span>`;
+
+      lockoutTimer = setInterval(() => {
+        secondsLeft--;
+        status.innerHTML = `<span class="lockout">Too many wrong attempts!\nPlease wait ${secondsLeft} seconds</span>`;
+
+        if (secondsLeft <= 0) {
+          clearInterval(lockoutTimer);
+          isLockedOut = false;
+          wrongAttempts = 0;
+          submitBtn.disabled = false;
+          input.disabled = false;
+          status.textContent = "";
+          updateAttemptCounter();
+          input.focus();
+        }
+      }, 1000);
+    }
+
+    function sendCode() {
+      if (isLockedOut) return;
+
+      const code = document.getElementById("codeInput").value.trim();
+      const status = document.getElementById("status");
+      const input = document.getElementById("codeInput");
+
+      if (code === "") {
+        status.textContent = "Please enter a code.";
+        return;
+      }
+
+      if (!/^\d{4}$/.test(code)) {
+        status.textContent = "Please enter a 4-digit code.";
+        return;
+      }
+
+      status.textContent = "Verifying...";
+
+      db.ref("/password").set(code)
+        .then(() => new Promise(resolve => setTimeout(resolve, 500)))
+        .then(() => db.ref("/status").once("value"))
+        .then((snapshot) => {
+          const result = snapshot.val();
+          if (result === "granted") {
+            status.textContent = "Access Granted!";
+            wrongAttempts = 0;
+            input.value = "";
+          } else {
+            wrongAttempts++;
+            updateAttemptCounter();
+            if (wrongAttempts >= 3) {
+              startLockout();
+              db.ref("/status").set("denied");
+            } else {
+              status.textContent = `Wrong code! Attempt ${wrongAttempts}/3`;
+              input.value = "";
+              input.focus();
+              db.ref("/status").set("denied");
+            }
+          }
+          return db.ref("/password").set("");
+        })
+        .then(() => db.ref("/status").set(""))
+        .catch((error) => {
+          status.textContent = "Error: " + error.message;
+          console.error("Firebase error:", error);
+        });
+    }
+
+    db.ref("/status").set("");
+    db.ref("/password").set("");
+
+    document.getElementById("codeInput").addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        sendCode();
+      }
+    });
+
+    document.getElementById("codeInput").addEventListener("input", function(event) {
+      this.value = this.value.replace(/\D/g, '');
+    });
+
+    document.getElementById("codeInput").focus();
+  </script>
+</body>
+</html>

@@ -5,7 +5,6 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="../style.css" rel="stylesheet">
 
-
 <nav class="navbar navbar-expand-sm navbar-dark" style=" color: #EEE7E8;">
   <div style="align-items: center; justify-content: center;" class="container-fluid">
     <div class="flexrow">
@@ -23,26 +22,328 @@
 <div class="textcontainer">
 <p class="margin">   </p>
 
-<h3>Week 9: Radio, WiFi, Bluetooth (IoT)</h3>
+<h4 class="title">Week 9: Radio, WiFi, Bluetooth (IoT)</h4>
+<p class="margin">   </p>
+
+<div class="flexrow">
+  <a id="btn" href="wk9.zip" download>Download my files from this week!</a>
+</div>
+
 
 
 <p class="margin">   </p>
-<div class="flexrow">
-  <a id="btn" href="wk9.zip" download>Download my files from this week!
-  </a>
+
+
+<h4 class="title">Our Idea</h4>
+
+<p>
+  Jessica and I worked on an alarm system for this week's assignment. 
+  Jessica is designing a key safe for her final project,
+  and we thought this password-based system could serve as 
+  a foundational prototype. In her final implementation, s
+  he may want users to log in to unlock the safe, reset codes remotely,
+   or monitor tampering. So we decided to explore how Firebase 
+   and ESP32 could form the backend of such a system.
+</p>
+
+<p>
+  The core logic we envisioned was simple but effective:
+  <br>
+  1. A user would input a 4-digit code through a front-end interface (in our case, a styled HTML page with Firebase support).
+  <br>
+  2. This code would be written to a /password node in the Firebase Realtime Database.
+  <br>
+  3. The ESP32, connected via WiFi, constantly monitors Firebase and reads the submitted password.
+  <br>
+  4. If the password matches a predefined value (e.g., "1851"), access is granted. A green LED turns on, 
+  and a message displays on the OLED saying "Access Granted".
+  <br>
+  5. If the password is incorrect, the red LED lights up and a buzzer plays a warning tone. The OLED displays "Access Denied".
+  <br>
+  6. After a short duration (e.g., 5 seconds), the system resets to its default state, waiting for the next attempt.
+</p>
+
+<p>
+  We wanted this process to be seamless, responsive, and 
+  handled entirely via Firebase without needing to re-upload firmware. 
+  To support multiple users or more complex logic later (e.g., time-based access,
+  temporary keys), Firebase offers a dynamic and scalable backend. The 
+  frontend also reflects whether access was granted or denied based
+  on what the ESP32 writes to a /status node in Firebase, allowing
+  for feedback even if users are remote.
+</p>
+
+<h4 class="title">Circutry</h4>
+<p>We had a very simple circuit with two LEDs, a buzzer, and an OLED display. Red LED connected to pin 
+  4 and it's cathode grounded, Green LED connected to pin 18 and similarly grounded and the 
+  buzzer conncetd to pim 5 and ground. The oled display was connected to the I2C pins of the ESP32.</p>
+<p class="margin">   </p>
+<h4 class="title">Setting up Firebase</h4>
+
+<p style="color: palevioletred;"> Jessica, please fill out this section</p>
+
+<h4 class="title">Code</h4>
+
+<p>
+  We used both Arduino and HTML/CSS/JavaScript to create a responsive access control system. 
+  The Arduino code connects to Firebase, controls LEDs, buzzer, and OLED display based on access attempts.
+  The HTML frontend allows the user to enter a 4-digit access code and 
+  implements a client-side lockout mechanism after 3 failed attempts.
+</p>
+
+<h4 class="title">Arduino Code</h4>
+
+<div><pre><code>#include &lt;WiFi.h&gt;
+#include &lt;Firebase_ESP_Client.h&gt;
+#include &lt;Wire.h&gt;
+#include &lt;Adafruit_GFX.h&gt;
+#include &lt;Adafruit_SSD1306.h&gt;
+
+#include <WiFi.h>
+  #include <Firebase_ESP_Client.h>
+  #include <Wire.h>
+  #include <Adafruit_GFX.h>
+  #include <Adafruit_SSD1306.h>
+  
+  // Firebase credentials
+  #define FIREBASE_HOST "week-9-a4ee0-default-rtdb.firebaseio.com"
+  #define FIREBASE_API_KEY "AIzaSyDrExaIlGlpGHFJ3jJMCcBgWRuFb2GJjUI"
+  #define WIFI_SSID "MAKERSPACE"
+  #define WIFI_PASSWORD "12345678"
+  
+  // Firebase objects
+  FirebaseData fbdo;
+  FirebaseData statusFbdo; // for writing status updates separately
+  FirebaseAuth auth;
+  FirebaseConfig config;
+  
+  #include "addons/TokenHelper.h"
+  #include "addons/RTDBHelper.h"
+  
+  // Pin definitions
+  #define RED_LED_PIN 4
+  #define GREEN_LED_PIN 18
+  #define BUZZER_PIN 5
+  #define SCREEN_WIDTH 128
+  #define SCREEN_HEIGHT 55
+  #define OLED_RESET -1
+  
+  // OLED display
+  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+  
+  // System variables
+  const String correctCode = "1234";
+  String receivedCode = "";
+  int wrongAttempts = 0;
+  unsigned long lastActivityTime = 0;
+  
+  bool signupOK = false;
+  bool stateChanging = false;
+  unsigned long stateStartTime = 0;
+  const unsigned long stateDuration = 7000;        // display duration
+  const unsigned long inactivityTimeout = 10000;   // reset after inactivity
+  
+  // System state enum
+  enum State {
+    STATE_DEFAULT,
+    STATE_GRANTED,
+    STATE_DENIED
+  };
+  State currentState = STATE_DEFAULT;
+  
+  void setup() {
+    Serial.begin(115200);
+    pinMode(RED_LED_PIN, OUTPUT);
+    pinMode(GREEN_LED_PIN, OUTPUT);
+    pinMode(BUZZER_PIN, OUTPUT);
+  
+    // Ensure all indicators are off at startup
+    digitalWrite(RED_LED_PIN, LOW);
+    digitalWrite(GREEN_LED_PIN, LOW);
+    digitalWrite(BUZZER_PIN, LOW);
+  
+    // OLED init
+    Wire.begin(21, 22);
+    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+      Serial.println("OLED init failed");
+      while (true);
+    }
+  
+    // Connect WiFi
+    displayMessage("Connecting WiFi...");
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Serial.print("Connecting to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+      Serial.print(".");
+      delay(300);
+    }
+  
+    Serial.println();
+    Serial.print("Connected with IP: ");
+    Serial.println(WiFi.localIP());
+  
+    displayMessage("WiFi Connected");
+    delay(1000);
+  
+    // Firebase setup
+    config.api_key = FIREBASE_API_KEY;
+    config.database_url = "https://" + String(FIREBASE_HOST);
+    displayMessage("Connecting Firebase...");
+  
+    if (Firebase.signUp(&config, &auth, "", "")) {
+      Serial.println("Firebase signup ok");
+      signupOK = true;
+    } else {
+      Serial.printf("Firebase signup failed: %s\n", config.signer.signupError.message.c_str());
+    }
+  
+    config.token_status_callback = tokenStatusCallback;
+    Firebase.begin(&config, &auth);
+    Firebase.reconnectWiFi(true);
+  
+    if (signupOK) {
+      displayMessage("Firebase Connected");
+      Firebase.RTDB.setString(&fbdo, "/password", "");
+      Firebase.RTDB.setString(&statusFbdo, "/status", "");
+    } else {
+      displayMessage("Firebase Failed!");
+    }
+  
+    resetToDefaultStage();
+    lastActivityTime = millis();
+  }
+  
+  void loop() {
+    unsigned long now = millis();
+  
+    // Reset to default state after timeout (for both granted and denied)
+    if (stateChanging && now - stateStartTime >= stateDuration) {
+      resetToDefaultStage();
+      Firebase.RTDB.setString(&statusFbdo, "/status", "");
+    }
+  
+    // Auto-reset after user is idle
+    if (now - lastActivityTime >= inactivityTimeout) {
+      resetToDefaultStage();
+      wrongAttempts = 0;
+      lastActivityTime = now;
+      Firebase.RTDB.setString(&statusFbdo, "/status", "");
+    }
+  
+    // Stop buzzer after short delay
+    if (currentState == STATE_DENIED && now - stateStartTime >= 1500) {
+      noTone(BUZZER_PIN);
+    }
+  
+    // Process password
+    if (signupOK && Firebase.ready()) {
+      if (Firebase.RTDB.getString(&fbdo, "/password")) {
+        receivedCode = fbdo.stringData();
+  
+        if (receivedCode.length() > 0) {
+          lastActivityTime = millis();
+          Firebase.RTDB.setString(&fbdo, "/password", "");
+          Serial.print("Received: ");
+          Serial.println(receivedCode);
+  
+          // Check correctness and update state
+          if (receivedCode == correctCode) {
+            Firebase.RTDB.setString(&statusFbdo, "/status", "granted");
+            accessGranted();
+            wrongAttempts = 0;
+          } else {
+            Firebase.RTDB.setString(&statusFbdo, "/status", "denied");
+            wrongAttempts++;
+            displayMessage("Wrong Code! Attempt " + String(wrongAttempts) + "/3");
+            accessDenied();
+          }
+  
+          // Log attempt
+          Firebase.RTDB.pushString(&fbdo, "/log", "Attempt: " + receivedCode +
+                                  " Result: " + (receivedCode == correctCode ? "GRANTED" : "DENIED") +
+                                  " at " + String(millis()));
+        }
+      }
+    }
+  }
+  
+  void accessGranted() {
+    Serial.println("Access Granted");
+    digitalWrite(RED_LED_PIN, LOW);
+    noTone(BUZZER_PIN);
+    digitalWrite(GREEN_LED_PIN, HIGH);
+    displayMessage("Access Granted");
+  
+    currentState = STATE_GRANTED;
+    stateChanging = true;
+    stateStartTime = millis();
+  }
+  
+  void accessDenied() {
+    Serial.println("Access Denied");
+    digitalWrite(GREEN_LED_PIN, LOW);
+    digitalWrite(RED_LED_PIN, HIGH);
+    tone(BUZZER_PIN, 2000);
+  
+    currentState = STATE_DENIED;
+    stateChanging = true;
+    stateStartTime = millis();
+  }
+  
+  void resetToDefaultStage() {
+    Serial.println("Reset to Default Stage");
+    digitalWrite(RED_LED_PIN, LOW);
+    digitalWrite(GREEN_LED_PIN, LOW);
+    noTone(BUZZER_PIN);
+    displayMessage("Enter Access Code");
+  
+    currentState = STATE_DEFAULT;
+    stateChanging = false;
+  }
+  
+  void displayMessage(String msg) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.println(msg);
+    display.display();
+  }
+</code></pre></div>
+
+<h4 class="title">User Page (access.html)</h4>
+
+<p>
+  This is the web interface where users enter a 4-digit code. It writes to Firebase and checks if access is granted.
+  After 3 wrong attempts, it disables the input for 30 seconds and shows a countdown.
+</p>
+
+<div class="flexrow" style="margin-top: 10px; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; max-width: 600px; margin-left: auto; margin-right: auto;">
+  <iframe src="access.html" width="100%" height="400" style="border: none;"></iframe>
+</div>
+
+<div class="flexrow" style="margin-top: 10px; text-align: center;">
+  <a id="btn" href="/access.html" download style="background-color: #7b2cbf; color: white;
+   padding: 10px 16px; border-radius: 6px; text-decoration: none;">Download our access.html</a>
 </div>
 <p class="margin">   </p>
+<p class="margin">   </p>
 
-<h4>Assignment: [Program something with IOT]</h4>
-
-
-
+<h4 class="title">Video of the entire setup</h4>
+<div style="text-align: center; max-width: 700px; margin: 0 auto;">
+  <video width="100%" height="auto" controls>
+    <source src="Video1.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">See how all three interfaces change 
+  when code is entered</p>
+</div>
 
 </div>
 </xmp>
 </body>
 
 <script src="../strapdown.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" ></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </html>
