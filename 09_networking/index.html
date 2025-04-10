@@ -29,10 +29,7 @@
   <a id="btn" href="wk9.zip" download>Download my files from this week!</a>
 </div>
 
-
-
 <p class="margin">   </p>
-
 
 <h4 class="title">Our Idea</h4>
 
@@ -76,11 +73,104 @@
 <h4 class="title">Circuitry</h4>
 <p>We had a very simple circuit with two LEDs, a buzzer, and an OLED display. Red LED connected to pin 
   4 and it's cathode grounded, Green LED connected to pin 18 and similarly grounded and the 
-  buzzer conncetd to pim 5 and ground. The oled display was connected to the I2C pins of the ESP32.</p>
+  buzzer connected to pim 5 and ground. The oled display was connected to the I2C pins of the ESP32. Going forward we could add 
+motos for door opening and closing and update firebase and arduino logic accordingly</p>
 <p class="margin">   </p>
-<h4 class="title">Setting up Firebase</h4>
 
-<p style="color: palevioletred;"> Jessica, please fill out this section</p>
+<h4 class="title">Firebase Setup</h4>
+<p>
+  We used online tutorials to help us set up Firebase
+   Realtime Database along with a basic authenticator system. For
+  our MVP (Minimum Viable Product), we manually created a node 
+  named /correctPassword and assigned it a string value: "1234". When a user
+  enters a password through the HTML interface, our code compares it against
+  this stored value in Firebase.
+</p>
+
+<p>
+  If the passwords match, the system logs 
+  a successful attempt by updating another node /accessResult to "granted". 
+  If they do not match, the /accessResult is updated to "denied".
+   This setup gives us a basic mechanism for 
+   validating password access and logging outcomes.
+</p>
+
+<p>
+  Once this basic authentication 
+  process was working, we wanted 
+  to improve the system by introducing a simple security 
+  feature to track failed login attempts. 
+  We added another node /incorrectAttempts.
+  Each time a user enters a wrong password,
+the count in this node increases.
+Once the counter reaches 3 failed attempts, 
+the system locks the user out for 30 seconds
+by disabling password input on the frontend. 
+This temporary lockout helps reduce brute-force attempts.
+</p>
+
+
+<h4 class="title">Debugging Firebase</h4>
+
+<p>
+  While integrating Firebase with our Arduino,
+   we ran into connectivity issues. 
+  After some debugging, we discovered
+   that the problem stemmed from 
+  Firebase's authentication settings.
+   In order for the Arduino to interact with 
+  the database, we needed to enable "Anonymous Authentication" in
+  the Firebase Authentication tab. Once enabled,
+   our Arduino device was able to send
+  and receive data without issue.
+</p>
+
+<p>
+  This highlighted the importance of properly configuring
+  Firebase permissions to ensure both security and functionality—especially 
+  when working with external hardware like an Arduino.
+</p>
+
+<h4 class="title">Next Steps</h4>
+<p>
+  While our current system works, we see several areas for improvement:
+  <br>
+  1.<strong>Implement Multi-Factor Authentication:</strong> 
+  We plan to add extra layers of security such as email authentication, 
+  one-time passwords (OTP), or app-based two-factor authentication. 
+  Firebase Authentication supports these features, and adding them will 
+  protect against unauthorized access even if a password is compromised.
+  <br>
+  2.<strong>Secure Firebase Rules:</strong> 
+  Currently, our database rules allow unrestricted read and write access 
+  to any anonymously validated device, which poses a major security risk. 
+  We plan to define specific access rules in Firebase to ensure only 
+  authenticated users or devices can interact with sensitive parts of the database.
+  <br>
+  3. <strong>Progressive Lock-Out System:</strong> 
+  We aim to implement a dynamic lockout mechanism. For example, after three failed 
+  login attempts, a 30-second timeout is enforced. Subsequent failures could increase 
+  the timeout to 60, then 120 seconds, making brute-force attacks impractical.
+  <br>
+  4. <strong>Device-Specific Access:</strong> 
+  We plan to explicitly authorize our Arduino device using device tokens or unique IDs 
+  stored in Firebase. This ensures only our hardware can update specific database entries, 
+  even with anonymous authentication enabled.
+  <br>
+  5. <strong>Real-Time Activity Logging:</strong> 
+  We'll enhance our logging to track access attempts with more detail. This includes 
+  timestamps via a "lastAttemptTime" node and logging "userID" or device information 
+  where available, helping us detect and audit suspicious activity.
+  <br>
+</p>
+<p>
+  To continue improving this security system, 
+  we'll keep experimenting with Firebase's tools—including 
+  Cloud Functions and Firestore for more advanced features—and explore 
+  integration with external APIs or services for real-time alerts and scalable
+  security measures.
+</p>
+
 
 <h4 class="title">Code</h4>
 
