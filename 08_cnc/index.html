@@ -23,9 +23,120 @@
 <div class="textcontainer">
 <p class="margin">   </p>
 
-<h3>Week 8: CNC Milling</h3>
+<h3 class="title">Week 8: CNC Milling</h3>
 
-<h4>Assignment: Make Something With CNC</h4>
+<h4 class="title">Idea</h4>
+
+<p>
+  I cook a lot and because I use a shared kitchen in Currier, I have to move my stuff around every time I cook. I use a lot of
+  grocery bags for this. So for this assignment, I will be making my life easier by making a grocery bag holder.
+</p>
+
+<h4 class="title">Modelling in Fusion</h4>
+<p>
+  To start I looked up existing designs online and <a href="https://www.etsy.com/listing/1671150317/grocery-bag-carry-handle-1-trip-carry?" style="color: crimson;">found this one</a> on Etsy.
+  I took a screenshot of it and imported it into Fusion 360. See image below.
+</p>
+
+<div style="display: flex; justify-content: center; gap: 20px; max-width: 100%;">
+  <div style="text-align: center; max-width: 500px;">
+    <img src="Canvas.png" alt="Screenshot of grocery bag holder design" style="width: 100%; border-radius: 8px;">
+    <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">
+      Canvas with reference image on Fusion 360
+    </p>
+  </div>
+</div>
+
+<br>
+
+<p>
+  I then used the fit point spline tool to trace the outline of the design to make a 2D design. I made sure to change 
+  dimensions of the canvas to fit my desired one. This is what the output looked like after I finished tracing.: 
+</p>
+
+<div style="display: flex; justify-content: center; gap: 20px; max-width: 100%;">
+  <div style="text-align: center; max-width: 500px;">
+    <img src="DXFfile.png" alt="2D design of grocery bag holder in fusion" style="width: 100%; border-radius: 8px;">
+    <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">
+      2D sketch of grocery bag holder
+    </p>
+  </div>
+</div>
+
+<br>
+
+<p>
+  Next I copied the dxf file on a drive and uploaded it to the shopbot computer. I opened the file in Aspire and with the help of Bobby 
+  did a  bit more file processing there. Here is a video of the CNC cutting the uploaded file.
+</p>
+
+<div style="text-align: center; max-width: 300px; margin: 0 auto;">
+  <video width="100%" height="auto" controls>
+    <source src="CNCatWork.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">CNC cutting out the handle. Oddly satisfying.</p>
+</div>
+<br>
+
+<p>
+  This is how the holder looks just out of the CNC. The indmill bit was too big for the size 
+  of my name so it is not as clear as I hoped it would be, but I am still happy with the result. The edges are
+  also very sharp and not smooth at all. We will have to do some post processing to make it look better.
+</p>
+
+<div style="display: flex; justify-content: center; gap: 20px; max-width: 100%;">
+  <div style="text-align: center; max-width: 400px;">
+    <img src="CompleteProduct.jpg" alt="Cut out Holder" style="width: 100%; border-radius: 8px;">
+    <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">
+      Cut out holder.
+    </p>
+  </div>
+</div>
+
+<h4 class="title">Post Processing</h4>
+
+<p>
+  For post processing, first I tried a machine that curves the edges, but clamping the holder was hard and it got
+  unsafe using the machine. See below video (Skip to 0:20 if you want to see the holder "acting up").
+</p>
+
+<div style="text-align: center; max-width: 350px; margin: 0 auto;">
+  <video width="100%" height="auto" controls>
+    <source src="PostProcess1.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Using machine to smoothen edges.</p>
+</div>
+<br>
+
+<p>
+  So I choose to use a belt sander instead. See this video:
+</p>
+
+<div style="text-align: center; max-width: 450px; margin: 0 auto;">
+  <video width="100%" height="auto" controls>
+    <source src="Sanding.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Using a belt sander.</p>
+</div>
+<br>
+
+<p>
+  To the left is the producct after sanding, the edges are way smoother. To the right, see the product in use at home.
+</p>
+
+<div style="display: flex; justify-content: center; gap: 20px; max-width: 100%;">
+  <div style="text-align: center; max-width: 300px;">
+      <img src="AfterSanding.jpg" alt="Picture of lower side of the holder after sanding" style="width: 100%; border-radius: 8px;">
+      <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;"> Holder after Sanding </p>
+  </div>
+  <div style="text-align: center; max-width: 300px;">
+    <img src="ProductInUse.jpg" alt="Picture of me using holder to carry grocery bags" style="width: 100%; border-radius: 8px;">
+    <p style="margin-top: 8px; font-size: 14px; color: #c9c9c9;">Using holder to carry grocery bags</p>
+  </div> 
+</div>
 
 </div>
 </xmp>
